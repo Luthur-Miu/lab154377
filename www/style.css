@@ -1,0 +1,92 @@
+.bg-color1 {
+    background-color: rgb(75, 13, 94);
+}
+
+.mt {
+    margin-top: 10px;
+}
+
+.ml {
+    margin-left: 20px;
+}
+
+
+/*ขนาดการ์ดกว้างxยาว ตรงauto คือ ซ้ายกับขวาเฉลี่ยกันให้การ์ดอยู่กลางหน้าเว็บ*/
+.page {
+    width: 210mm;
+    height: 297mm;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+
+.my-front {
+    font-family: "Fredoka";
+}
+
+.title-line {
+    width: 550px;
+    /* ความยาว */
+    border: none;
+    border-top: 2px solid #fefcfc;
+    margin: 10px 0;
+}
+
+.da {
+    width: 100;
+    border-top: 3px dashed #1105f8;
+    margin: 10px 0;
+}
+
+.do {
+    width: 100;
+    border-top: 3px dotted #1008fa;
+    margin: 10px 0;
+}
+
+.icon45 {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.icon20 {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.icon100 {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+
+/*printCV*/
+@page {
+    size: A4;
+    margin: 0;
+}
+
+@media print {
+
+    body {
+        margin: 0;
+        padding: 0;
+    }
+
+    /* ซ่อนปุ่มตอนพิมพ์ */
+    .no-print {
+        display: none !important;
+    }
+
+    /* กำหนด CV เป็นขนาด A4 */
+    .cv {
+        width: 210mm;
+        height: 297mm;
+    }
+}
