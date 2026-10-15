@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบติดตามสถานการณ์น้ำในเขื่อน (Leaflet Dashboard)</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=Sarabun:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+
+    <!-- Bootstrap 5 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <!-- Custom CSS -->
+  <script type="module" crossorigin src="/lab154377/term_project/assets/index-HcVTUOin.js"></script>
+  <link rel="stylesheet" crossorigin href="/lab154377/term_project/assets/index-DEJkYBR6.css">
+</head>
+
+<body>
+
+    <!-- แถบนำทางด้านบน (Navbar) พร้อมปุ่มไอคอน (i) และปุ่มสลับโหมด -->
+    <nav class="navbar navbar-dark bg-primary px-3 shadow-sm d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+            <span class="navbar-brand mb-0 h1 fw-bold">🌊 ระบบรายงานสถานการณ์น้ำในเขื่อน</span>
+            <span class="text-white-50 small d-none d-md-inline">Dashboard ข้อมูลแบบ Real-time จาก RID API</span>
+        </div>
+
+        <!-- กลุ่มปุ่มมุมขวาบน: ปุ่มสลับธีม + ปุ่มข้อมูล (i) -->
+        <div class="d-flex align-items-center gap-2">
+            <!-- ปุ่มสลับโหมดมืด/สว่าง -->
+            <button id="btnThemeToggle" type="button" class="btn-theme-toggle" title="สลับโหมดมืด/สว่าง"
+                aria-label="สลับโหมดสี">
+                <i id="themeIcon" class="bi bi-moon-fill"></i>
+            </button>
+
+            <!-- ปุ่มไอคอนข้อมูล (i) เปิด Popup ซ้ำ -->
+            <button id="btnOpenModal" type="button" class="btn-info-icon" title="ข้อมูลระบบและคณะผู้จัดทำ"
+                aria-label="ข้อมูลโครงการ">
+                <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="50" cy="50" r="43" stroke="currentColor" stroke-width="7" />
+                    <circle cx="50" cy="30" r="6" fill="currentColor" />
+                    <path d="M44 44H51V71H57" stroke="currentColor" stroke-width="7" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </svg>
+            </button>
+        </div>
+    </nav>
+
+    <!-- โครงสร้างหลัก (Main Container) -->
+    <div class="container-fluid py-3 main-container">
+        <div class="row h-100 g-3">
+
+            <!-- [ด้านซ้าย] แผนที่ Leaflet พร้อม Dropdown -->
+            <div class="col-lg-7 h-100">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-header bg-white fw-bold d-flex justify-content-between align-items-center py-2">
+                        <span>🗺️ แผนที่ตำแหน่งเขื่อน</span>
+                        <div class="d-flex align-items-center gap-2" style="max-width: 260px;">
+                            <select id="dam-select" class="form-select form-select-sm">
+                                <option value="" disabled selected>-- เลือกเขื่อน --</option>
+                                <option value="all">🌐 แสดงเขื่อนทั้งหมด</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body p-0 position-relative">
+                        <div id="map"></div>
+
+                        <!-- 📌 ใส่กล่อง Legend ตรงนี้ เพื่อให้ลอยทับมุมซ้ายล่างของแผนที่ -->
+                        <div id="map-legend" class="map-legend-box shadow-sm">
+                            <div class="fw-bold mb-1" style="font-size: 12px;"></div>
+
+                            <!-- หมุดตำแหน่งเขื่อน -->
+                            <div class="d-flex align-items-center gap-2 mb-1" style="font-size: 11px;">
+                                <span
+                                    style="width: 14px; height: 14px; border-radius: 50%; border: 2px solid #0284c7; background: #fff; display: inline-block; flex-shrink: 0;"></span>
+                                <span>หมุดตำแหน่งเขื่อน (คลิกดูรายละเอียด)</span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- [ด้านขวา] ข้อมูลแบ่งครึ่งบน-ล่าง -->
+            <div class="col-lg-5 h-100 d-flex flex-column gap-3">
+
+                <!-- [ขวาบน] ข้อมูลความจุ + Pie Chart -->
+                <div class="card flex-fill shadow-sm border-0 overflow-auto">
+                    <div class="card-header bg-white border-bottom py-2">
+                        <span class="fw-bold"><b>ข้อมูลความจุ (ล้าน ลบ.ม.)</b></span>
+                    </div>
+                    <div class="card-body p-4 d-flex flex-column">
+                        <div class="mb-2" id="capacity-summary">
+                            <span class="text-muted">กำลังโหลดข้อมูลความจุ...</span>
+                        </div>
+                        <div id="dam-chart" class="flex-grow-1" style="min-height: 200px;"></div>
+                    </div>
+                </div>
+
+                <!-- [ขวาล่าง] ข้อมูลเขื่อน / รายชื่อเขื่อน -->
+                <div class="card flex-fill shadow-sm border-0 overflow-hidden">
+                    <div class="card-header bg-white fw-bold border-bottom py-2">
+                        ℹ️ ข้อมูลเขื่อนและรายละเอียดการระบายน้ำ
+                    </div>
+                    <div class="card-body p-2" id="dam-info">
+                        <div class="text-center text-muted my-3">
+                            <p class="mb-0">กำลังโหลดรายละเอียดเขื่อน...</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Modal Popup ต้อนรับ -->
+    <div class="modal fade modern-popup-modal" id="welcomeModal" tabindex="-1" aria-labelledby="welcomeModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content custom-modal-content">
+
+                <!-- ปุ่มปิดวงกลมลอยมุมขวาบน -->
+                <button type="button" class="modal-floating-close" data-bs-dismiss="modal" aria-label="Close"
+                    title="ปิดหน้าต่าง">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+
+                <!-- Header -->
+                <div class="custom-modal-header text-center">
+                    <div class="header-icon-badge">
+                        <i class="bi bi-droplet-half"></i>
+                    </div>
+                    <h4 class="modal-title fw-bold text-primary mt-2" id="welcomeModalLabel">
+                        ยินดีต้อนรับเข้าสู่ระบบติดตามสถานการณ์น้ำในเขื่อน
+                    </h4>
+                    <p class="text-muted small mb-0">Thai Dam Reservoir Monitoring & Analytics Dashboard</p>
+                </div>
+
+                <!-- เนื้อหาใน Popup -->
+                <div class="modal-body px-4 py-3">
+                    <div class="row g-3">
+
+                        <!-- ฝั่งซ้าย: ที่มาและความสำคัญ + วิธีการดำเนินการพัฒนา -->
+                        <div class="col-md-7 d-flex flex-column gap-3">
+
+                            <!-- การ์ดที่ 1: ที่มาและความสำคัญ -->
+                            <div class="info-card objective-card">
+                                <div class="card-section-title">
+                                    <i class="bi bi-bullseye text-danger"></i>
+                                    ที่มาและความสำคัญ
+                                </div>
+                                <ul class="objective-list mb-0">
+                                    <li>
+                                        <span>
+                                            จากเหตุการณ์น้ำท่วมและภัยแล้งที่เกิดขึ้นซ้ำแล้วซ้ำเล่าในอดีต
+                                            ทำให้เกิดข้อสงสัยว่า
+                                            ปัจจุบันเขื่อนทั่วประเทศยังสามารถรองรับน้ำฝนที่อาจตกหนักต่อเนื่องได้อีกมากน้อยเพียงใด
+                                            และในช่วงฤดูแล้งที่ขาดแคลนน้ำอย่างรุนแรง
+                                            ปริมาณน้ำที่มีอยู่จะเพียงพอต่อความต้องการใช้น้ำหรือไม่
+                                        </span>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <!-- การ์ดที่ 2: วิธีการดำเนินการพัฒนา -->
+                            <div class="info-card objective-card flex-grow-1">
+                                <div class="card-section-title">
+                                    <i class="bi bi-gear-fill text-danger"></i>
+                                    วิธีการดำเนินการพัฒนา
+                                </div>
+                                <ul class="objective-list mb-0">
+                                    <li>
+                                        <span class="bullet-num">1</span>
+                                        <span>เลือกหัวข้อและกำหนดขอบเขตของการนำเสนอข้อมูลขึ้นหน้าเว็บ</span>
+                                    </li>
+                                    <li>
+                                        <span class="bullet-num">2</span>
+                                        <span>รวบรวมข้อมูลที่ต้องการใช้ ทั้ง API ของเขื่อน และพิกัดภูมิศาสตร์</span>
+                                    </li>
+                                    <li>
+                                        <span class="bullet-num">3</span>
+                                        <span>ออกแบบหน้าเว็บให้ใช้งานง่าย โดยไม่นำแผนที่ กราฟ
+                                            และรายละเอียดมาแสดงปนกัน</span>
+                                    </li>
+                                    <li>
+                                        <span class="bullet-num">4</span>
+                                        <span>ใช้ Visual Studio Code ในการพัฒนาเว็บไซต์</span>
+                                    </li>
+
+                                    <hr>
+                                    <div class="card-section-title">
+                                        <i class="bi bi-gear-fill text-danger"></i>
+                                        Library
+                                    </div>
+                                    <ul class="objective-list mb-0">
+                                        <li>
+                                            <span class="bullet-num">1</span>
+                                            <span>[JavaScript, HTML, CSS]
+                                                <br>[Express, Cors, Body Parser, PostgreSQL]
+                                                <br>[Vite, Axios, Leaflet, Bootstrap, Highcharts]
+                                            </span>
+                                        </li>
+                                    </ul>
+                                </ul>
+                            </div>
+
+                        </div>
+
+                        <!-- ฝั่งขวา: ผลการพัฒนา + รายวิชาและผู้จัดทำ -->
+                        <div class="col-md-5">
+
+                            <!-- การ์ดผลการพัฒนา -->
+                            <div class="info-card mb-3">
+                                <div class="card-section-title">
+                                    <i class="bi bi-stars text-danger"></i>
+                                    ผลการพัฒนา
+                                </div>
+                                <ul class="objective-list mb-0">
+                                    <li>
+                                        <span>
+                                            ได้เว็บแอปพลิเคชันที่สามารถแสดงตำแหน่งเขื่อนและติดตามสถานการณ์น้ำในเขื่อนทั่วประเทศได้ภายในเว็บเดียว
+                                            โดยแสดงข้อมูลปริมาณน้ำไหลเข้าและน้ำระบายออก
+                                            รวมถึงปริมาณน้ำกักเก็บ ความจุอ่าง ปริมาณน้ำคงเหลือ และปริมาณน้ำที่ใช้ไป
+                                        </span>
+                                    </li>
+                                </ul>
+                            </div>
+
+                            <!-- การ์ดรายวิชาและผู้จัดทำ -->
+                            <div class="info-card">
+                                <div class="card-section-title">
+                                    <i class="bi bi-book-fill" style="color: #8B4513;"></i>
+                                    รายวิชา
+                                </div>
+                                <div class="creator-list mb-3">
+                                    <div>
+                                        <strong class="d-block text-dark">
+                                            Multimedia Cartography 154377
+                                        </strong>
+                                        <span class="student-id">Sakda Homhuan (Ph.D.)</span>
+                                    </div>
+                                </div>
+
+                                <div class="card-section-title">
+                                    <i class="bi bi-people-fill text-primary"></i>
+                                    ผู้จัดทำ
+                                </div>
+                                <ul class="list-unstyled mb-0 creator-list">
+                                    <li>
+                                        <div class="avatar-tag">1</div>
+                                        <div>
+                                            <strong class="d-block text-dark">พงศกร สุขศิริเวชรักษ์</strong>
+                                            <span class="student-id">680410050</span>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <div class="avatar-tag">2</div>
+                                        <div>
+                                            <strong class="d-block text-dark">อติชญา โกวฤทธิ์</strong>
+                                            <span class="student-id">680410078</span>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+
+                        </div>
+
+                        <!-- แหล่งอ้างอิง API -->
+                        <div class="col-12 api-reference-position">
+                            <div
+                                class="api-reference-box d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-link-45deg fs-4 text-info"></i>
+                                    <div>
+                                        <div class="small fw-bold text-dark">แหล่งอ้างอิง / ข้อมูล API:</div>
+                                        <a href="https://app.rid.go.th/reservoir/api/document/dam" target="_blank"
+                                            rel="noopener noreferrer" class="api-link text-truncate">
+                                            https://app.rid.go.th/reservoir/api/document/dam
+                                        </a>
+                                    </div>
+                                </div>
+                                <a href="https://app.rid.go.th/reservoir/api/dam/public" target="_blank"
+                                    rel="noopener noreferrer" class="btn btn-outline-primary btn-sm px-3 rounded-pill">
+                                    เปิดเอกสาร API <i class="bi bi-box-arrow-up-right ms-1"></i>
+                                </a>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</body>
+
+</html>
